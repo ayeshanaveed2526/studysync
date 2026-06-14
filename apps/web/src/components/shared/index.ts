@@ -1,2 +1,3 @@
-// Shared layout components — navbar, sidebar, modals
-export {};
+export { ProtectedRoute } from './ProtectedRoute';
+export { ProfilePage } from './ProfilePage';
+

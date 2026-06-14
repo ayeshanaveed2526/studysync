@@ -24,6 +24,9 @@ export default [
         Response: "readonly",
         URL: "readonly",
         WebSocket: "readonly",
+        HTMLInputElement: "readonly",
+        File: "readonly",
+        FormData: "readonly",
         // Node.js globals
         process: "readonly",
         __dirname: "readonly",
@@ -32,6 +35,7 @@ export default [
         clearTimeout: "readonly",
         setInterval: "readonly",
         clearInterval: "readonly",
+        Buffer: "readonly",
       },
     },
     plugins: {

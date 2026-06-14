@@ -1,32 +1,34 @@
 import { create } from 'zustand';
-import type { UserPublic } from '@studysync/types';
+import type { UserDTO } from '@studysync/types';
 
 interface AuthState {
-  user: UserPublic | null;
-  isAuthenticated: boolean;
+  user: UserDTO | null;
+  accessToken: string | null;
   isLoading: boolean;
-  setUser: (user: UserPublic | null) => void;
-  setLoading: (loading: boolean) => void;
-  logout: () => void;
+  setAuth: (user: UserDTO, accessToken: string) => void;
+  clearAuth: () => void;
+  setLoading: (isLoading: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
-  isAuthenticated: false,
+  accessToken: localStorage.getItem('accessToken'),
   isLoading: true,
-  setUser: (user) =>
+  setAuth: (user, accessToken) => {
+    localStorage.setItem('accessToken', accessToken);
     set({
       user,
-      isAuthenticated: !!user,
-      isLoading: false,
-    }),
-  setLoading: (isLoading) => set({ isLoading }),
-  logout: () => {
-    localStorage.removeItem('accessToken');
-    set({
-      user: null,
-      isAuthenticated: false,
+      accessToken,
       isLoading: false,
     });
   },
+  clearAuth: () => {
+    localStorage.removeItem('accessToken');
+    set({
+      user: null,
+      accessToken: null,
+      isLoading: false,
+    });
+  },
+  setLoading: (isLoading) => set({ isLoading }),
 }));

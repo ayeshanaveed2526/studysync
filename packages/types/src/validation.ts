@@ -5,7 +5,15 @@ import { z } from 'zod';
 export const registerSchema = z.object({
   name: z.string().min(2, 'Name must be at least 2 characters').max(100),
   email: z.string().email('Invalid email address'),
-  password: z.string().min(8, 'Password must be at least 8 characters').max(128),
+  password: z
+    .string()
+    .min(8, 'Password must be at least 8 characters')
+    .max(128)
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[0-9]/, 'Password must contain at least one number'),
+  department: z.string().max(100).optional(),
+  semester: z.number().int().min(1).max(12).optional(),
+  skills: z.array(z.string().max(50)).max(20).optional(),
 });
 
 export const loginSchema = z.object({
@@ -14,10 +22,11 @@ export const loginSchema = z.object({
 });
 
 export const updateProfileSchema = z.object({
-  name: z.string().min(2).max(100).optional(),
-  department: z.string().max(100).optional(),
-  semester: z.number().int().min(1).max(12).optional(),
+  name: z.string().min(2, 'Name must be at least 2 characters').max(100).optional(),
+  department: z.string().max(100).optional().nullable(),
+  semester: z.number().int().min(1).max(12).optional().nullable(),
   skills: z.array(z.string().max(50)).max(20).optional(),
+  avatarUrl: z.string().url('Invalid avatar URL').or(z.string().length(0)).optional().nullable(),
 });
 
 // ─── Group Schemas ───────────────────────────────────────────────────────────

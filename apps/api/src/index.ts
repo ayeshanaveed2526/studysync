@@ -3,9 +3,12 @@ import { createServer } from 'http';
 import cors from 'cors';
 import helmet from 'helmet';
 import cookieParser from 'cookie-parser';
+import passport from 'passport';
 import { env } from './config';
-import { errorHandler } from './middleware';
+import { errorHandler, generalLimiter } from './middleware';
 import { initializeSocket } from './socket';
+import { authRouter } from './modules/auth';
+import { usersRouter } from './modules/users';
 
 // ─── App Setup ───────────────────────────────────────────────────────────────
 
@@ -14,6 +17,7 @@ const httpServer = createServer(app);
 
 // ─── Core Middleware ─────────────────────────────────────────────────────────
 
+app.use(generalLimiter);
 app.use(helmet());
 app.use(
   cors({
@@ -26,6 +30,7 @@ app.use(
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 
 // ─── Health Check ────────────────────────────────────────────────────────────
 
@@ -41,8 +46,9 @@ app.get('/api/health', (_req, res) => {
 });
 
 // ─── API Routes ──────────────────────────────────────────────────────────────
-// Routes will be registered here as features are implemented.
-// Example: app.use('/api/auth', authRouter);
+
+app.use('/api/auth', authRouter);
+app.use('/api/users', usersRouter);
 
 // ─── Error Handler (must be last middleware) ─────────────────────────────────
 

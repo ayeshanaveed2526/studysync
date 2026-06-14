@@ -21,7 +21,7 @@ export interface PaginatedResponse<T> {
 
 // ─── User Types ──────────────────────────────────────────────────────────────
 
-export interface UserPublic {
+export interface UserDTO {
   id: string;
   name: string;
   email: string;
@@ -32,14 +32,16 @@ export interface UserPublic {
   createdAt: string;
 }
 
+export type UserPublic = UserDTO;
+
 export interface AuthTokens {
   accessToken: string;
   refreshToken: string;
 }
 
 export interface AuthResponse {
-  user: UserPublic;
-  tokens: AuthTokens;
+  user: UserDTO;
+  accessToken: string;
 }
 
 // ─── Group Types ─────────────────────────────────────────────────────────────

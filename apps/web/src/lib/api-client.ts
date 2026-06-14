@@ -1,11 +1,8 @@
 import axios from 'axios';
+import { useAuthStore } from '../stores/auth-store';
 
 const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:4000';
 
-/**
- * Pre-configured Axios instance for API calls.
- * Automatically attaches the access token from localStorage.
- */
 export const api = axios.create({
   baseURL: `${API_URL}/api`,
   headers: {
@@ -14,10 +11,10 @@ export const api = axios.create({
   withCredentials: true,
 });
 
-// Request interceptor — attach auth token
+// Request interceptor — attach auth token from Zustand store
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('accessToken');
+    const token = useAuthStore.getState().accessToken;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -43,16 +40,19 @@ api.interceptors.response.use(
           { withCredentials: true },
         );
 
-        const { accessToken } = refreshResponse.data.data.tokens;
-        localStorage.setItem('accessToken', accessToken);
+        const { user, accessToken } = refreshResponse.data.data;
+        
+        // Update Zustand auth store
+        useAuthStore.getState().setAuth(user, accessToken);
 
+        // Retry the original request with new token
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
         return api(originalRequest);
-      } catch {
-        // Refresh failed — clear tokens and redirect to login
-        localStorage.removeItem('accessToken');
+      } catch (refreshError) {
+        // Second 401/Refresh failed — clear auth store and redirect to login
+        useAuthStore.getState().clearAuth();
         window.location.href = '/login';
-        return Promise.reject(error);
+        return Promise.reject(refreshError);
       }
     }
 

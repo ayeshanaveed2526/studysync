@@ -4,6 +4,7 @@ export type {
   ApiErrorResponse,
   ApiResponse,
   PaginatedResponse,
+  UserDTO,
   UserPublic,
   AuthTokens,
   AuthResponse,
