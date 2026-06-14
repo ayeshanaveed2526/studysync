@@ -1,0 +1,284 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── User ────────────────────────────────────────────────────────────────────
+
+model User {
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  passwordHash String?
+  googleId     String?  @unique
+  department   String?
+  semester     Int?
+  skills       String[]
+  avatarUrl    String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  groupMembers     GroupMember[]
+  assignedTasks    Task[]           @relation("AssignedTasks")
+  createdTasks     Task[]           @relation("CreatedTasks")
+  messages         Message[]
+  uploadedFiles    File[]
+  notifications    Notification[]
+  evaluationsGiven PeerEvaluation[] @relation("EvaluationsGiven")
+  evaluationsRecvd PeerEvaluation[] @relation("EvaluationsReceived")
+  aiPrompts        AiPrompt[]
+}
+
+// ─── Group ───────────────────────────────────────────────────────────────────
+
+model Group {
+  id          String    @id @default(uuid())
+  name        String
+  description String?
+  type        GroupType
+  inviteCode  String    @unique @default(cuid())
+  createdById String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  members     GroupMember[]
+  tasks       Task[]
+  messages    Message[]
+  files       File[]
+  notes       Note[]
+  meetings    Meeting[]
+  aiPrompts   AiPrompt[]
+  aiSummaries AiSummary[]
+}
+
+enum GroupType {
+  ASSIGNMENT
+  PROJECT
+  STUDY
+}
+
+// ─── Group Member ────────────────────────────────────────────────────────────
+
+model GroupMember {
+  id       String     @id @default(uuid())
+  groupId  String
+  userId   String
+  role     MemberRole @default(MEMBER)
+  joinedAt DateTime   @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([groupId, userId])
+}
+
+enum MemberRole {
+  ADMIN
+  LEADER
+  MEMBER
+}
+
+// ─── Task ────────────────────────────────────────────────────────────────────
+
+model Task {
+  id           String     @id @default(uuid())
+  groupId      String
+  title        String
+  description  String?
+  priority     Priority   @default(MEDIUM)
+  status       TaskStatus @default(TODO)
+  assignedToId String?
+  createdById  String
+  dueDate      DateTime?
+  aiAssigned   Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  group      Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  assignedTo User? @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  createdBy  User  @relation("CreatedTasks", fields: [createdById], references: [id])
+}
+
+enum Priority {
+  LOW
+  MEDIUM
+  HIGH
+  URGENT
+}
+
+enum TaskStatus {
+  TODO
+  IN_PROGRESS
+  REVIEW
+  COMPLETED
+}
+
+// ─── Message ─────────────────────────────────────────────────────────────────
+
+model Message {
+  id        String      @id @default(uuid())
+  groupId   String
+  senderId  String
+  content   String
+  type      MessageType @default(TEXT)
+  replyToId String?
+  sentAt    DateTime    @default(now())
+
+  group     Group              @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  sender    User               @relation(fields: [senderId], references: [id])
+  replyTo   Message?           @relation("Replies", fields: [replyToId], references: [id])
+  replies   Message[]          @relation("Replies")
+  reactions MessageReaction[]
+}
+
+enum MessageType {
+  TEXT
+  FILE
+  AI_SUMMARY
+  SYSTEM
+}
+
+// ─── Message Reaction ────────────────────────────────────────────────────────
+
+model MessageReaction {
+  id        String   @id @default(uuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message Message @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+}
+
+// ─── File ────────────────────────────────────────────────────────────────────
+
+model File {
+  id           String   @id @default(uuid())
+  groupId      String
+  uploadedById String
+  fileUrl      String
+  fileName     String
+  fileSize     Int
+  mimeType     String
+  version      Int      @default(1)
+  uploadedAt   DateTime @default(now())
+
+  group      Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  uploadedBy User  @relation(fields: [uploadedById], references: [id])
+}
+
+// ─── Note ────────────────────────────────────────────────────────────────────
+
+model Note {
+  id        String   @id @default(uuid())
+  groupId   String
+  title     String
+  content   Json     @default("{}")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
+
+// ─── Meeting ─────────────────────────────────────────────────────────────────
+
+model Meeting {
+  id          String   @id @default(uuid())
+  groupId     String
+  title       String
+  scheduledAt DateTime
+  duration    Int?
+  notes       String?
+  createdAt   DateTime @default(now())
+
+  group       Group               @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  attendances MeetingAttendance[]
+}
+
+model MeetingAttendance {
+  id        String  @id @default(uuid())
+  meetingId String
+  userId    String
+  present   Boolean @default(false)
+
+  meeting Meeting @relation(fields: [meetingId], references: [id], onDelete: Cascade)
+
+  @@unique([meetingId, userId])
+}
+
+// ─── Peer Evaluation ─────────────────────────────────────────────────────────
+
+model PeerEvaluation {
+  id            String   @id @default(uuid())
+  groupId       String
+  evaluatorId   String
+  evaluatedId   String
+  contribution  Int
+  communication Int
+  quality       Int
+  comment       String?
+  createdAt     DateTime @default(now())
+
+  evaluator User @relation("EvaluationsGiven", fields: [evaluatorId], references: [id])
+  evaluated User @relation("EvaluationsReceived", fields: [evaluatedId], references: [id])
+
+  @@unique([groupId, evaluatorId, evaluatedId])
+}
+
+// ─── Notification ────────────────────────────────────────────────────────────
+
+model Notification {
+  id         String           @id @default(uuid())
+  userId     String
+  type       NotificationType
+  entityType String
+  entityId   String
+  message    String
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+enum NotificationType {
+  TASK_ASSIGNED
+  TASK_DUE_SOON
+  TASK_OVERDUE
+  FILE_UPLOADED
+  MENTION
+  GROUP_INVITE
+  MEETING_REMINDER
+  AI_SUMMARY_READY
+  PEER_EVAL_REQUEST
+}
+
+// ─── AI ──────────────────────────────────────────────────────────────────────
+
+model AiPrompt {
+  id        String   @id @default(uuid())
+  groupId   String
+  userId    String
+  prompt    String
+  response  String
+  tokens    Int?
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id])
+}
+
+model AiSummary {
+  id        String   @id @default(uuid())
+  groupId   String
+  content   String
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  group Group @relation(fields: [groupId], references: [id], onDelete: Cascade)
+}
